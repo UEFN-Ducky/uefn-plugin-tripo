@@ -34,6 +34,10 @@ Details worth knowing: Text/Image/Multi-view to 3D have Model (v3.1 … P2), Tex
 
 Any mesh works as input to Texture, Retopology, Smart UV, Segment, Convert and Rig (a local GLB/FBX/OBJ is uploaded); Stylize, Animate and Complete Parts need a Tripo node's output. Tripo meshes also feed the built-in nodes (Set Mesh Origin, Mesh BBox Fit, Send to UEFN, Open in Blender).
 
+## Built-in nodes on Tripo
+
+On apps that list plugin backends, the built-in Text to 3D (Tripo, Tripo P1), Image to 3D, Multi-view to 3D, (Re)Texture Mesh, Optimize Mesh (retopology), UV Unfold (smart UV), Convert 3D Model, Rig Humanoid Mesh (any creature, skeleton picked by the free rig check), Animate Rigged Mesh (names like idle, walk, run) and Edit Image nodes offer Tripo in their Backend dropdown. Their outputs chain into the Tripo nodes and back on the Tripo task.
+
 ## Templates (New workflow → "Tripo: …")
 
 - Prompt to 3D model in UEFN · Picture to 3D model in UEFN

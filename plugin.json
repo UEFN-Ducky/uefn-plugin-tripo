@@ -1,7 +1,7 @@
 {
   "id": "tripo",
   "kind": "plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "label": "Tripo",
   "description": "Tripo AI (studio.tripo3d.ai) API — text/image/multi-view to 3D, text/image to picture, texture, retopology, smart UV, segment and complete parts, convert, LEGO/voxel stylize, auto-rig and animate. Agent tools plus workflow nodes; import into Blender or UEFN.",
   "min_app_version": "1.0.0",
@@ -2898,6 +2898,653 @@
             "model": "chat_image_2"
           },
           "config_fields": [
+            {
+              "id": "size",
+              "label": "Size (2K, 4K or 2048x1152; blank = model default)",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "media_backends": [
+        {
+          "node": "mesh.generate",
+          "id": "tripo_text_to_3d",
+          "label": "Tripo",
+          "tool": "tripo_text_to_3d",
+          "credits": 20,
+          "pins": {
+            "prompt": "prompt"
+          },
+          "config_fields": [
+            {
+              "id": "model_version",
+              "label": "Model",
+              "type": "select",
+              "options": [
+                {
+                  "id": "v3.1-20260211",
+                  "label": "v3.1 — best quality"
+                },
+                {
+                  "id": "v3.0-20250812",
+                  "label": "v3.0"
+                },
+                {
+                  "id": "v2.5-20250123",
+                  "label": "v2.5 — balanced"
+                },
+                {
+                  "id": "P1-20260311",
+                  "label": "P1 — clean low-poly"
+                },
+                {
+                  "id": "P2-20260801",
+                  "label": "P2 — low-poly with quads (preview)"
+                }
+              ]
+            },
+            {
+              "id": "texture",
+              "label": "Texture",
+              "type": "select",
+              "options": [
+                {
+                  "id": "pbr",
+                  "label": "PBR textures"
+                },
+                {
+                  "id": "texture",
+                  "label": "Color texture only"
+                },
+                {
+                  "id": "none",
+                  "label": "No texture (cheaper)"
+                }
+              ]
+            },
+            {
+              "id": "texture_quality",
+              "label": "Texture quality",
+              "type": "select",
+              "options": [
+                {
+                  "id": "standard",
+                  "label": "Standard"
+                },
+                {
+                  "id": "fast",
+                  "label": "Fast"
+                },
+                {
+                  "id": "detailed",
+                  "label": "HD (+10 credits)"
+                },
+                {
+                  "id": "extreme",
+                  "label": "8K ultra (+20 credits)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "node": "mesh.generate",
+          "id": "tripo_text_to_3d_p1",
+          "label": "Tripo P1 (clean low-poly)",
+          "tool": "tripo_text_to_3d",
+          "credits": 20,
+          "args": {
+            "model_version": "P1-20260311"
+          },
+          "pins": {
+            "prompt": "prompt"
+          },
+          "config_fields": [
+            {
+              "id": "texture",
+              "label": "Texture",
+              "type": "select",
+              "options": [
+                {
+                  "id": "pbr",
+                  "label": "PBR textures"
+                },
+                {
+                  "id": "texture",
+                  "label": "Color texture only"
+                },
+                {
+                  "id": "none",
+                  "label": "No texture (cheaper)"
+                }
+              ]
+            },
+            {
+              "id": "texture_quality",
+              "label": "Texture quality",
+              "type": "select",
+              "options": [
+                {
+                  "id": "standard",
+                  "label": "Standard"
+                },
+                {
+                  "id": "fast",
+                  "label": "Fast"
+                },
+                {
+                  "id": "detailed",
+                  "label": "HD (+10 credits)"
+                },
+                {
+                  "id": "extreme",
+                  "label": "8K ultra (+20 credits)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "node": "mesh.from_image",
+          "id": "tripo_image_to_3d",
+          "label": "Tripo",
+          "tool": "tripo_image_to_3d",
+          "credits": 30,
+          "pins": {
+            "image": "image"
+          },
+          "task_args": {
+            "image": "image"
+          },
+          "config_fields": [
+            {
+              "id": "model_version",
+              "label": "Model",
+              "type": "select",
+              "options": [
+                {
+                  "id": "v3.1-20260211",
+                  "label": "v3.1 — best quality"
+                },
+                {
+                  "id": "v3.0-20250812",
+                  "label": "v3.0"
+                },
+                {
+                  "id": "v2.5-20250123",
+                  "label": "v2.5 — balanced"
+                },
+                {
+                  "id": "P1-20260311",
+                  "label": "P1 — clean low-poly"
+                },
+                {
+                  "id": "P2-20260801",
+                  "label": "P2 — low-poly with quads (preview)"
+                }
+              ]
+            },
+            {
+              "id": "texture",
+              "label": "Texture",
+              "type": "select",
+              "options": [
+                {
+                  "id": "pbr",
+                  "label": "PBR textures"
+                },
+                {
+                  "id": "texture",
+                  "label": "Color texture only"
+                },
+                {
+                  "id": "none",
+                  "label": "No texture (cheaper)"
+                }
+              ]
+            },
+            {
+              "id": "texture_quality",
+              "label": "Texture quality",
+              "type": "select",
+              "options": [
+                {
+                  "id": "standard",
+                  "label": "Standard"
+                },
+                {
+                  "id": "fast",
+                  "label": "Fast"
+                },
+                {
+                  "id": "detailed",
+                  "label": "HD (+10 credits)"
+                },
+                {
+                  "id": "extreme",
+                  "label": "8K ultra (+20 credits)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "node": "mesh.multi_view",
+          "id": "tripo_multiview_to_3d",
+          "label": "Tripo",
+          "tool": "tripo_multiview_to_3d",
+          "credits": 30,
+          "pins": {
+            "images": "images"
+          },
+          "config_fields": [
+            {
+              "id": "model_version",
+              "label": "Model",
+              "type": "select",
+              "options": [
+                {
+                  "id": "v3.1-20260211",
+                  "label": "v3.1 — best quality"
+                },
+                {
+                  "id": "v3.0-20250812",
+                  "label": "v3.0"
+                },
+                {
+                  "id": "v2.5-20250123",
+                  "label": "v2.5 — balanced"
+                },
+                {
+                  "id": "P1-20260311",
+                  "label": "P1 — clean low-poly"
+                },
+                {
+                  "id": "P2-20260801",
+                  "label": "P2 — low-poly with quads (preview)"
+                }
+              ]
+            },
+            {
+              "id": "texture",
+              "label": "Texture",
+              "type": "select",
+              "options": [
+                {
+                  "id": "pbr",
+                  "label": "PBR textures"
+                },
+                {
+                  "id": "texture",
+                  "label": "Color texture only"
+                },
+                {
+                  "id": "none",
+                  "label": "No texture (cheaper)"
+                }
+              ]
+            },
+            {
+              "id": "texture_quality",
+              "label": "Texture quality",
+              "type": "select",
+              "options": [
+                {
+                  "id": "standard",
+                  "label": "Standard"
+                },
+                {
+                  "id": "fast",
+                  "label": "Fast"
+                },
+                {
+                  "id": "detailed",
+                  "label": "HD (+10 credits)"
+                },
+                {
+                  "id": "extreme",
+                  "label": "8K ultra (+20 credits)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "node": "mesh.retexture",
+          "id": "tripo_texture",
+          "label": "Tripo",
+          "tool": "tripo_texture",
+          "credits": 10,
+          "pins": {
+            "mesh": "source",
+            "prompt": "text_prompt",
+            "style_image": "style_image"
+          },
+          "task_args": {
+            "mesh": "source"
+          },
+          "config_fields": [
+            {
+              "id": "texture_quality",
+              "label": "Texture quality",
+              "type": "select",
+              "options": [
+                {
+                  "id": "standard",
+                  "label": "Standard"
+                },
+                {
+                  "id": "fast",
+                  "label": "Fast"
+                },
+                {
+                  "id": "detailed",
+                  "label": "HD (+10 credits)"
+                },
+                {
+                  "id": "extreme",
+                  "label": "8K ultra (+20 credits)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "node": "mesh.remesh",
+          "id": "tripo_retopology",
+          "label": "Tripo retopology",
+          "tool": "tripo_retopology",
+          "credits": 35,
+          "pins": {
+            "mesh": "source",
+            "polycount": "face_limit"
+          },
+          "task_args": {
+            "mesh": "source"
+          },
+          "cfg": {
+            "topology": "topology"
+          },
+          "config_fields": [
+            {
+              "id": "smart_uv",
+              "label": "Smart UVs too",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "node": "mesh.uv_unwrap",
+          "id": "tripo_smart_uv",
+          "label": "Tripo smart UV",
+          "tool": "tripo_smart_uv",
+          "credits": 20,
+          "pins": {
+            "mesh": "source"
+          },
+          "task_args": {
+            "mesh": "source"
+          }
+        },
+        {
+          "node": "mesh.convert",
+          "id": "tripo_convert",
+          "label": "Tripo",
+          "tool": "tripo_convert",
+          "credits": 5,
+          "pins": {
+            "mesh": "source"
+          },
+          "task_args": {
+            "mesh": "source"
+          },
+          "cfg": {
+            "format": "format"
+          },
+          "config_fields": [
+            {
+              "id": "fbx_preset",
+              "label": "FBX preset",
+              "type": "select",
+              "options": [
+                {
+                  "id": "blender",
+                  "label": "Blender"
+                },
+                {
+                  "id": "3dsmax",
+                  "label": "3ds Max"
+                },
+                {
+                  "id": "mixamo",
+                  "label": "Mixamo"
+                },
+                {
+                  "id": "bake_scale",
+                  "label": "Bake scale"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "node": "mesh.rig",
+          "id": "tripo_rig",
+          "label": "Tripo (any creature)",
+          "tool": "tripo_rig",
+          "credits": 25,
+          "pins": {
+            "mesh": "source"
+          },
+          "task_args": {
+            "mesh": "source"
+          },
+          "stage": "rig",
+          "args": {
+            "rig_type": "auto"
+          },
+          "config_fields": [
+            {
+              "id": "rig_type",
+              "label": "Skeleton",
+              "type": "select",
+              "options": [
+                {
+                  "id": "auto",
+                  "label": "Auto (free rig check)"
+                },
+                {
+                  "id": "biped",
+                  "label": "Biped"
+                },
+                {
+                  "id": "quadruped",
+                  "label": "Quadruped"
+                },
+                {
+                  "id": "hexapod",
+                  "label": "Hexapod"
+                },
+                {
+                  "id": "octopod",
+                  "label": "Octopod"
+                },
+                {
+                  "id": "avian",
+                  "label": "Avian"
+                },
+                {
+                  "id": "serpentine",
+                  "label": "Serpentine"
+                },
+                {
+                  "id": "aquatic",
+                  "label": "Aquatic"
+                },
+                {
+                  "id": "others",
+                  "label": "Others"
+                }
+              ]
+            },
+            {
+              "id": "spec",
+              "label": "Bone names (biped)",
+              "type": "select",
+              "options": [
+                {
+                  "id": "tripo",
+                  "label": "Tripo"
+                },
+                {
+                  "id": "mixamo",
+                  "label": "Mixamo"
+                },
+                {
+                  "id": "unreal",
+                  "label": "Unreal (UE mannequin)"
+                },
+                {
+                  "id": "unity",
+                  "label": "Unity"
+                },
+                {
+                  "id": "actorcore",
+                  "label": "ActorCore"
+                },
+                {
+                  "id": "vrm",
+                  "label": "VRM"
+                }
+              ]
+            },
+            {
+              "id": "out_format",
+              "label": "File",
+              "type": "select",
+              "options": [
+                {
+                  "id": "fbx",
+                  "label": "FBX"
+                },
+                {
+                  "id": "glb",
+                  "label": "GLB"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "node": "mesh.animate",
+          "id": "tripo_animate",
+          "label": "Tripo (idle, walk, run…)",
+          "tool": "tripo_animate",
+          "credits": 10,
+          "pins": {
+            "mesh": "rig_task_id",
+            "actions": "animations"
+          },
+          "task_args": {
+            "mesh": "rig_task_id"
+          },
+          "task_only": [
+            "mesh"
+          ],
+          "stage": "animation",
+          "config_fields": [
+            {
+              "id": "animate_in_place",
+              "label": "In place (no root motion)",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "node": "image.edit",
+          "id": "tripo_image_to_image",
+          "label": "Tripo · Seedream 5",
+          "tool": "tripo_image_to_image",
+          "credits": 5,
+          "pins": {
+            "image": "image",
+            "prompt": "prompt"
+          },
+          "task_args": {
+            "image": "image"
+          },
+          "config_fields": [
+            {
+              "id": "model",
+              "label": "Image model",
+              "type": "select",
+              "options": [
+                {
+                  "id": "seedream_v4",
+                  "label": "Seedream 4 (5)"
+                },
+                {
+                  "id": "seedream_v5",
+                  "label": "Seedream 5 (5)"
+                },
+                {
+                  "id": "banana",
+                  "label": "Banana (5)"
+                },
+                {
+                  "id": "banana2",
+                  "label": "Banana 2 (10)"
+                },
+                {
+                  "id": "banana_pro",
+                  "label": "Banana Pro (15)"
+                },
+                {
+                  "id": "chat_image_2",
+                  "label": "Chat Image 2 (10)"
+                },
+                {
+                  "id": "chat_image_2.5_flare",
+                  "label": "Chat Image 2.5 Flare (10)"
+                },
+                {
+                  "id": "chat_image_2.5_sunburst",
+                  "label": "Chat Image 2.5 Sunburst (10)"
+                }
+              ]
+            },
+            {
+              "id": "template",
+              "label": "Template",
+              "type": "select",
+              "options": [
+                {
+                  "id": "t_pose",
+                  "label": "T-pose character"
+                },
+                {
+                  "id": "character_completion",
+                  "label": "Complete the character"
+                },
+                {
+                  "id": "3d_enhance",
+                  "label": "Ready for 3D"
+                },
+                {
+                  "id": "variants",
+                  "label": "Variants"
+                },
+                {
+                  "id": "figure",
+                  "label": "Figure"
+                },
+                {
+                  "id": "asset_extraction",
+                  "label": "Pull the object out"
+                }
+              ]
+            },
             {
               "id": "size",
               "label": "Size (2K, 4K or 2048x1152; blank = model default)",

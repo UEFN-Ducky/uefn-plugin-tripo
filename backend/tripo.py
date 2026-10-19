@@ -508,6 +508,7 @@ def parse_task(raw: dict[str, Any]) -> dict[str, Any]:
         "image_url": output.get("generated_image_url") or "",
         "results": links,
         "output": output,
+        "input": raw.get("input") if isinstance(raw.get("input"), dict) else {},
         "credits_consumed": raw.get("credits_consumed", raw.get("consumed_credit")),
         "created_at": raw.get("created_at"),
         "completed_at": raw.get("completed_at"),
@@ -839,6 +840,16 @@ def rig_version_for(rig_type: str, spec: str, version: str = "") -> str:
     if rig_type and rig_type != "biped":
         return "v2.5-20260210"
     return "v1.0-20240301"
+
+
+def rig_info(client: "TripoClient", rig_task_id: str, version: str = "", kind: str = "") -> tuple[str, str]:
+    """The rig engine and skeleton of a rig job, read from its own request when not given."""
+    if version and kind:
+        return version, kind
+    echo = client.task(rig_task_id).get("input") or {}
+    version = version or str(echo.get("model") or echo.get("model_version") or "v1.0-20240301")
+    kind = kind or str(echo.get("rig_type") or echo.get("topology") or "biped")
+    return version, kind
 
 
 def animation_id(name: str, rig_version: str = "", rig_type: str = "biped") -> str:

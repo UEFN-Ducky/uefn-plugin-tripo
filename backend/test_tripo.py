@@ -88,7 +88,7 @@ class FakeTripo:
         payload = json.loads(req.data.decode())
         tid = f"task_{len(self.created) + 1}"
         self.created.append((kind, payload))
-        self.tasks[tid] = {"task_id": tid, "type": kind, "status": "success", "progress": 100,
+        self.tasks[tid] = {"task_id": tid, "type": kind, "status": "success", "progress": 100, "input": payload,
                            "output": self.output_for(kind, tid, payload), "credits_consumed": 20.0}
         return self._envelope({"task_id": tid, "type": kind, "status": "queued"})
 
@@ -297,6 +297,28 @@ def test_tools_gate_and_run(api, fake) -> None:
     assert "P series" in api.tools["tripo_text_to_3d"](prompt="x", model_version="P1-20260311", smart_low_poly=True)
 
 
+def test_tools_for_the_builtin_nodes(api, fake, tmp_path) -> None:
+    # Rig "auto": the free rig check picks the skeleton (quadruped here) and so the engine.
+    rig = json.loads(api.tools["tripo_rig"](source="task_abc123", rig_type="auto", confirm_spend=True))
+    assert [k for k, _ in fake.created] == ["rig_check", "rig"] and rig["rig_type"] == "quadruped"
+    assert fake.created[-1][1]["model"] == "v2.5-20260210" and "spec" not in fake.created[-1][1]
+    # Animate with no engine given reads it from the rig job's own request.
+    json.loads(api.tools["tripo_animate"](rig_task_id=rig["task_id"], animations="walk", confirm_spend=True))
+    assert fake.created[-1][1]["animation"] == "preset:quadruped:walk"
+    # Multi-view from a list (front, left, …) as the built-in node sends it.
+    views = []
+    for name in ("front", "left"):
+        (tmp_path / f"{name}.png").write_bytes(PNG)
+        views.append(str(tmp_path / f"{name}.png"))
+    json.loads(api.tools["tripo_multiview_to_3d"](images=json.dumps(views), confirm_spend=True))
+    assert [list(v) for v in fake.created[-1][1]["inputs"]] == [["front"], ["left"]]
+    # Quads from the Optimize node's Topology, and a style picture alone paints from that picture.
+    json.loads(api.tools["tripo_retopology"](source="task_abc123", topology="quad", confirm_spend=True))
+    assert fake.created[-1][1]["quad"] is True
+    json.loads(api.tools["tripo_texture"](source="task_abc123", style_image=views[0], confirm_spend=True))
+    assert fake.created[-1][1]["texture_prompt"] == {"image": f"file_{fake.uploads}"}
+
+
 # --------------------------------------------------------------------------- nodes
 
 
@@ -353,6 +375,18 @@ def test_manifest_matches_code(api) -> None:
     assert declared == set(nodes.HANDLERS) == set(api.nodes)
     for row in contrib["automations"]["image_generators"]:
         assert row["tool"] in api.tools and row["args"]["model"] in t.IMAGE_MODELS
+    import inspect
+
+    builtin_pins = {"mesh.generate": {"prompt"}, "mesh.from_image": {"image", "prompt"}, "mesh.multi_view": {"images"},
+                    "mesh.retexture": {"mesh", "prompt", "style_image"}, "mesh.remesh": {"mesh", "polycount"},
+                    "mesh.uv_unwrap": {"mesh"}, "mesh.convert": {"mesh"}, "mesh.rig": {"mesh", "height"},
+                    "mesh.animate": {"mesh", "actions"}, "image.edit": {"image", "prompt"}}
+    for row in contrib["automations"]["media_backends"]:
+        params = set(inspect.signature(api.tools[row["tool"]]).parameters)
+        assert set(row["pins"]) <= builtin_pins[row["node"]], row["id"]
+        for arg in [*row["pins"].values(), *row.get("task_args", {}).values(), *row.get("cfg", {}).values(),
+                    *row.get("args", {}), *(f["id"] for f in row.get("config_fields", []))]:
+            assert arg in params, (row["id"], arg)
     for name in contrib["agent.tools"]["plan_tools"]:
         assert name in api.tools
     builtin = {"input.text", "input.image", "input.mesh", "mesh.set_origin", "uefn.import", "util.preview"}

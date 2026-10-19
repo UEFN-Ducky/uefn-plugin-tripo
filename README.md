@@ -9,6 +9,7 @@ Desktop plugin id `tripo`. Install or update from **Settings → Store** in the 
 - **Agent tools** (`tripo_*` on the shared `uefn-ducky` MCP): text / image / multi-view to 3D, image to Gaussian splat, text to image, image edit, image to multi-view, edit multi-view, texture, convert, stylize (LEGO, voxel, Minecraft…), retopology, smart UV, segment and complete parts, rig check, auto rig, animate, plus balance, usage, status, batch status, download, upload and import to Blender / UEFN.
 - **Workflow nodes** (the **Tripo** group in Workflows): Text to 3D, Image to 3D, Multi-view to 3D, Image to Splat, Text to Image, Edit Image, Image to Multi-view, Edit Multi-view, Texture Model, Retopology, Smart UV, Segment Parts, Complete Parts, Convert, Stylize, Rig Check, Auto Rig, Animate, Balance. Files carry their Tripo task, so a chain (Text to 3D → Auto Rig → Animate → Send to UEFN) never re-uploads.
 - **Text to Image backends** for the built-in Text to Image node (Seedream, Banana, Chat Image).
+- **Backends for the built-in nodes** (`contributes.automations.media_backends`): Text to 3D, Image to 3D, Multi-view to 3D, (Re)Texture, Optimize Mesh, UV Unfold, Convert, Rig, Animate and Edit Image can run on Tripo, on app versions that read this list.
 - **Ready-made workflows**: prompt or picture to a model in UEFN, a rigged and animated character, concept → four views → model, game-ready retopology, repaint, LEGO-style.
 - **Settings → Tripo**: API key with Test (shows the balance) and defaults for the 3D model, texture quality and image model.
 

@@ -243,6 +243,7 @@ def register_tools(api: Any) -> None:
         left: str = "",
         back: str = "",
         right: str = "",
+        images: str = "",
         multiview_task_id: str = "",
         model_version: str = "",
         texture: str = "pbr",
@@ -254,7 +255,7 @@ def register_tools(api: Any) -> None:
         wait: bool = True,
         output_dir: str = "",
     ) -> str:
-        """Tripo multi-view→3D: front (required) plus left/back/right pictures, or a tripo_image_to_multiview / tripo_edit_multiview task_id. ~30 credits."""
+        """Tripo multi-view→3D: front (required) plus left/back/right pictures (or images = a JSON list in that order), or a tripo_image_to_multiview / tripo_edit_multiview task_id. ~30 credits."""
         def go() -> dict[str, Any] | str:
             opts = t.model_options(model_version=model_version, texture=texture, texture_quality=texture_quality,
                                    face_limit=face_limit, quad=quad, smart_low_poly=smart_low_poly)
@@ -266,7 +267,11 @@ def register_tools(api: Any) -> None:
                 inputs: list[dict[str, str]] = [{"task_id": multiview_task_id.strip()}]
             else:
                 views = {"front": front, "left": left, "back": back, "right": right}
-                if not front.strip():
+                listed = json.loads(images) if images.strip().startswith("[") else t.split_names(images, limit=4)
+                for view, src in zip(t.VIEWS, listed, strict=False):
+                    if str(src or "").strip() and not views[view].strip():
+                        views[view] = str(src)
+                if not views["front"].strip():
                     return "Error: front view is required (or pass multiview_task_id)"
                 inputs = [{view: c.resolve(src, f"{view} view")} for view, src in views.items() if src.strip()]
                 if len(inputs) < 2:
@@ -418,8 +423,9 @@ def register_tools(api: Any) -> None:
             if version:
                 payload["model"] = version
             prompt_obj: dict[str, Any] = {}
-            if reference_image.strip():
-                prompt_obj["image"] = c.resolve(reference_image, "reference_image")
+            if reference_image.strip() or (style_image.strip() and not text_prompt.strip()):
+                # A style picture with no prompt: paint from the picture itself.
+                prompt_obj["image"] = c.resolve(reference_image or style_image, "reference_image")
             elif text_prompt.strip():
                 prompt_obj["text"] = text_prompt.strip()[:1024]
                 if style_image.strip():
@@ -512,11 +518,14 @@ def register_tools(api: Any) -> None:
         smart_uv: bool = False,
         bake: bool = True,
         part_names: str = "",
+        topology: str = "",
         confirm_spend: bool = False,
         wait: bool = True,
         output_dir: str = "",
     ) -> str:
-        """Retopology / low-poly: clean game-ready topology at face_limit (500-20000 tri, 500-10000 quad), textures baked on; v3.0 can add smart UVs. 10-40 credits."""
+        """Retopology / low-poly: clean game-ready topology at face_limit (500-20000 tri, 500-10000 quad; topology quad|triangle), textures baked on; v3.0 can add smart UVs. 10-40 credits."""
+        quad = quad or topology.strip().lower() == "quad"
+
         def go() -> dict[str, Any] | str:
             v = version.strip() or "v3.0"
             if v not in t.RETOPO_VERSIONS:
@@ -635,20 +644,28 @@ def register_tools(api: Any) -> None:
         wait: bool = True,
         output_dir: str = "",
     ) -> str:
-        """Auto-rig a model (skeleton + skin). rig_type biped…aquatic|others; spec tripo|mixamo|unreal|unity|actorcore|vrm (unreal = UE mannequin bones). ~25 credits."""
+        """Auto-rig a model (skeleton + skin). rig_type auto (free rig check picks it)|biped…aquatic|others; spec tripo|mixamo|unreal|unity|actorcore|vrm (unreal = UE mannequin bones). ~25 credits."""
         def go() -> dict[str, Any] | str:
             kind = rig_type.strip().lower() or "biped"
-            if kind not in t.RIG_TYPES:
-                return f"Error: rig_type must be one of {', '.join(t.RIG_TYPES)}"
+            if kind not in (*t.RIG_TYPES, "auto"):
+                return f"Error: rig_type must be auto or one of {', '.join(t.RIG_TYPES)}"
             sp = spec.strip().lower() or "tripo"
             if sp not in t.RIG_SPECS:
                 return f"Error: spec must be one of {', '.join(t.RIG_SPECS)}"
-            version = t.rig_version_for(kind, sp, rig_version)
+            t.rig_version_for("biped" if kind == "auto" else kind, sp, rig_version)  # a bad version/spec pair fails before any spend
             blocked = t.credit_gate(confirm_spend, t.RIG_CREDITS, "auto rig")
             if blocked:
                 return blocked
             c = client()
-            payload: dict[str, Any] = {"input": c.resolve(source, "source"), "model": version, "rig_type": kind,
+            src = c.resolve(source, "source")
+            if kind == "auto":  # free
+                check = c.wait(c.create("rig_check", {"input": src}))
+                if check.get("riggable") is False:
+                    return "Error: Tripo says this model can't be rigged (one whole character or creature in a clear pose rigs best)."
+                kind = str(check.get("rig_type") or "biped")
+                kind = kind if kind in t.RIG_TYPES else "biped"
+            version = t.rig_version_for(kind, sp, rig_version)
+            payload: dict[str, Any] = {"input": src, "model": version, "rig_type": kind,
                                        "out_format": "glb" if out_format.strip().lower() == "glb" else "fbx"}
             if kind == "biped":
                 payload["spec"] = sp
@@ -662,8 +679,8 @@ def register_tools(api: Any) -> None:
     def tripo_animate(
         rig_task_id: str,
         animations: str = "idle",
-        rig_version: str = "v1.0-20240301",
-        rig_type: str = "biped",
+        rig_version: str = "",
+        rig_type: str = "",
         out_format: str = "fbx",
         animate_in_place: bool = False,
         export_with_geometry: bool = True,
@@ -676,11 +693,12 @@ def register_tools(api: Any) -> None:
             names = t.split_names(animations, limit=5)
             if not names:
                 return "Error: name at least one animation"
-            ids = [t.animation_id(n, rig_version, rig_type) for n in names]
+            c = client()
+            version, kind = t.rig_info(c, rig_task_id.strip(), rig_version.strip(), rig_type.strip())  # free lookup
+            ids = [t.animation_id(n, version, kind) for n in names]
             blocked = t.credit_gate(confirm_spend, t.RETARGET_CREDITS * len(ids), f"{len(ids)} animation(s)")
             if blocked:
                 return blocked
-            c = client()
             payload: dict[str, Any] = {"input": rig_task_id.strip(), "original_model_task_id": rig_task_id.strip(),
                                        "out_format": "glb" if out_format.strip().lower() == "glb" else "fbx"}
             if len(ids) == 1:

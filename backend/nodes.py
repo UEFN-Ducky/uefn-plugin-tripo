@@ -569,12 +569,13 @@ def animate(ctx: Ctx) -> dict[str, Any]:
     if ref is None:
         return {"ok": False, "error": "Animate needs the model straight from a Tripo Auto Rig node."}
     names = t.split_names(inp.get("animations") or cfg.get("animations") or "idle", limit=10)
-    version, kind = str(ref.get("rig_version") or "v1.0-20240301"), str(ref.get("rig_type") or "biped")
-    ids = [t.animation_id(n, version, kind) for n in names]
-    blocked = _spend(cfg, t.RETARGET_CREDITS * len(ids), f"Animate ({len(ids)} animation{'s' if len(ids) != 1 else ''})")
+    blocked = _spend(cfg, t.RETARGET_CREDITS * len(names), f"Animate ({len(names)} animation{'s' if len(names) != 1 else ''})")
     if blocked:
         return blocked
     client = _client()
+    # A rig from the built-in Rig node doesn't say its engine: read it from the rig job (free).
+    version, kind = t.rig_info(client, str(ref["task_id"]), str(ref.get("rig_version") or ""), str(ref.get("rig_type") or ""))
+    ids = [t.animation_id(n, version, kind) for n in names]
     out_format = "glb" if cfg.get("out_format") == "glb" else "fbx"
     meshes: list[dict[str, Any]] = []
     files: list[dict[str, Any]] = []
