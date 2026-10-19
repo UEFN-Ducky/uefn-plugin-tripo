@@ -1,0 +1,2915 @@
+{
+  "id": "tripo",
+  "kind": "plugin",
+  "version": "1.0.0",
+  "label": "Tripo",
+  "description": "Tripo AI (studio.tripo3d.ai) API — text/image/multi-view to 3D, text/image to picture, texture, retopology, smart UV, segment and complete parts, convert, LEGO/voxel stylize, auto-rig and animate. Agent tools plus workflow nodes; import into Blender or UEFN.",
+  "min_app_version": "1.0.0",
+  "default_enabled": false,
+  "secret_keys": [
+    "tripo_api_key"
+  ],
+  "contributes": {
+    "settings.tabs": [
+      {
+        "id": "Tripo",
+        "label": "Tripo",
+        "icon": "assets/icon.png",
+        "ui": "sections"
+      }
+    ],
+    "settings.sections": [
+      {
+        "tab": "Tripo",
+        "id": "account",
+        "title": "Tripo",
+        "description": "Paste your Tripo API key (developers.tripo3d.ai → API Keys, starts with tsk_). Stored encrypted on this device. Powers the tripo_* tools and the Tripo workflow nodes. 1 credit = $0.01; buy credits at developers.tripo3d.ai → Billing.",
+        "order": 10,
+        "properties": [
+          {
+            "id": "tripo_api_key",
+            "type": "secret",
+            "label": "API key",
+            "placeholder": "tsk_…",
+            "testable": true,
+            "description": "Get a key at https://developers.tripo3d.ai — Test shows your credit balance."
+          }
+        ]
+      },
+      {
+        "tab": "Tripo",
+        "id": "defaults",
+        "title": "Defaults",
+        "description": "What Tripo tools and nodes use when a call or node doesn't pick its own.",
+        "order": 20,
+        "properties": [
+          {
+            "id": "default_model",
+            "type": "select",
+            "label": "3D model",
+            "default": "v3.1-20260211",
+            "description": "v3.1 is Tripo's best quality; P1/P2 make clean low-poly game assets.",
+            "options": [
+              {
+                "value": "v3.1-20260211",
+                "label": "v3.1 — best quality"
+              },
+              {
+                "value": "v3.0-20250812",
+                "label": "v3.0"
+              },
+              {
+                "value": "v2.5-20250123",
+                "label": "v2.5 — balanced"
+              },
+              {
+                "value": "P1-20260311",
+                "label": "P1 — clean low-poly"
+              },
+              {
+                "value": "P2-20260801",
+                "label": "P2 — low-poly with quads (preview)"
+              }
+            ]
+          },
+          {
+            "id": "default_texture_quality",
+            "type": "select",
+            "label": "Texture quality",
+            "default": "standard",
+            "options": [
+              {
+                "value": "standard",
+                "label": "Standard"
+              },
+              {
+                "value": "fast",
+                "label": "Fast"
+              },
+              {
+                "value": "detailed",
+                "label": "HD (+10 credits)"
+              },
+              {
+                "value": "extreme",
+                "label": "8K ultra (+20 credits)"
+              }
+            ]
+          },
+          {
+            "id": "default_image_model",
+            "type": "select",
+            "label": "Image model",
+            "default": "seedream_v4",
+            "options": [
+              {
+                "value": "seedream_v4",
+                "label": "Seedream 4 (5)"
+              },
+              {
+                "value": "seedream_v5",
+                "label": "Seedream 5 (5)"
+              },
+              {
+                "value": "banana",
+                "label": "Banana (5)"
+              },
+              {
+                "value": "banana2",
+                "label": "Banana 2 (10)"
+              },
+              {
+                "value": "banana_pro",
+                "label": "Banana Pro (15)"
+              },
+              {
+                "value": "chat_image_2",
+                "label": "Chat Image 2 (10)"
+              },
+              {
+                "value": "chat_image_2.5_flare",
+                "label": "Chat Image 2.5 Flare (10)"
+              },
+              {
+                "value": "chat_image_2.5_sunburst",
+                "label": "Chat Image 2.5 Sunburst (10)"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "walkthrough": {
+      "id": "tripo",
+      "title": "Tripo setup",
+      "auto_start": "first_enable",
+      "settings_tab": "Tripo",
+      "steps": [
+        {
+          "target": "settings.tab.tripo",
+          "title": "Paste your API key",
+          "body": "Create a key at developers.tripo3d.ai → API Keys (tsk_…), paste it here, then hit Test to see your credits. Tools appear as tripo_* once this plugin is on.",
+          "advance": "next",
+          "mode": "rect"
+        },
+        {
+          "target": "settings.tab.tripo",
+          "title": "Generate anything",
+          "body": "Ask a ducky for a model, character or picture, or open Workflows: the Tripo group has Text/Image/Multi-view to 3D, Texture, Retopology, Smart UV, Segment, Convert, Stylize, Auto Rig and Animate. Paid steps only run with Spend credits on, and agents ask you first.",
+          "advance": "next"
+        }
+      ]
+    },
+    "agent.tools": {
+      "category": "tripo",
+      "intent_pattern": "\\b(tripo|tripo3d|tripo\\s*ai|text[- ]?to[- ]?3d|image[- ]?to[- ]?3d|multi[- ]?view|retopo(?:logy)?|low[- ]?poly|rig(?:ging)?|animat(?:e|ion)s?|lego|voxel|minecraft|splat|segment(?:ation)?|smart\\s*uv|3d\\s*model)\\b",
+      "plan_tools": [
+        "tripo_balance",
+        "tripo_usage",
+        "tripo_status",
+        "tripo_tasks",
+        "tripo_list_animations"
+      ]
+    },
+    "automations": {
+      "nodes": [
+        {
+          "id": "tripo.text_to_3d",
+          "label": "Tripo Text to 3D",
+          "group": "Tripo",
+          "exec": false,
+          "description": "A textured 3D model from your prompt on Tripo (v3.1, or P1/P2 for clean low-poly). About 20 credits textured.",
+          "inputs": [
+            {
+              "id": "prompt",
+              "label": "Prompt",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "negative",
+              "label": "Avoid",
+              "type": "text"
+            },
+            {
+              "id": "polycount",
+              "label": "Max polygons",
+              "type": "number"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "preview",
+              "label": "Preview",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "model",
+              "label": "Model",
+              "type": "select",
+              "options": [
+                {
+                  "id": "v3.1-20260211",
+                  "label": "v3.1 — best quality"
+                },
+                {
+                  "id": "v3.0-20250812",
+                  "label": "v3.0"
+                },
+                {
+                  "id": "v2.5-20250123",
+                  "label": "v2.5 — balanced"
+                },
+                {
+                  "id": "P1-20260311",
+                  "label": "P1 — clean low-poly"
+                },
+                {
+                  "id": "P2-20260801",
+                  "label": "P2 — low-poly with quads (preview)"
+                }
+              ]
+            },
+            {
+              "id": "texture",
+              "label": "Texture",
+              "type": "select",
+              "options": [
+                {
+                  "id": "pbr",
+                  "label": "PBR textures"
+                },
+                {
+                  "id": "texture",
+                  "label": "Color texture only"
+                },
+                {
+                  "id": "none",
+                  "label": "No texture (cheaper)"
+                }
+              ]
+            },
+            {
+              "id": "texture_quality",
+              "label": "Texture quality",
+              "type": "select",
+              "options": [
+                {
+                  "id": "standard",
+                  "label": "Standard"
+                },
+                {
+                  "id": "fast",
+                  "label": "Fast"
+                },
+                {
+                  "id": "detailed",
+                  "label": "HD (+10 credits)"
+                },
+                {
+                  "id": "extreme",
+                  "label": "8K ultra (+20 credits)"
+                }
+              ]
+            },
+            {
+              "id": "hd_geometry",
+              "label": "HD geometry (+20, v3.0+)",
+              "type": "boolean"
+            },
+            {
+              "id": "face_limit",
+              "label": "Max polygons (blank = adaptive)",
+              "type": "number"
+            },
+            {
+              "id": "quad",
+              "label": "Quad mesh, FBX (+5)",
+              "type": "boolean"
+            },
+            {
+              "id": "smart_low_poly",
+              "label": "Smart low-poly (+10)",
+              "type": "boolean"
+            },
+            {
+              "id": "generate_parts",
+              "label": "Separate parts, untextured (+20)",
+              "type": "boolean"
+            },
+            {
+              "id": "auto_size",
+              "label": "Real-world size in meters",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "tripo.image_to_3d",
+          "label": "Tripo Image to 3D",
+          "group": "Tripo",
+          "exec": false,
+          "description": "A 3D model from one picture on Tripo. About 30 credits textured.",
+          "inputs": [
+            {
+              "id": "image",
+              "label": "Image",
+              "type": "image",
+              "required": true
+            },
+            {
+              "id": "polycount",
+              "label": "Max polygons",
+              "type": "number"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "preview",
+              "label": "Preview",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "model",
+              "label": "Model",
+              "type": "select",
+              "options": [
+                {
+                  "id": "v3.1-20260211",
+                  "label": "v3.1 — best quality"
+                },
+                {
+                  "id": "v3.0-20250812",
+                  "label": "v3.0"
+                },
+                {
+                  "id": "v2.5-20250123",
+                  "label": "v2.5 — balanced"
+                },
+                {
+                  "id": "P1-20260311",
+                  "label": "P1 — clean low-poly"
+                },
+                {
+                  "id": "P2-20260801",
+                  "label": "P2 — low-poly with quads (preview)"
+                }
+              ]
+            },
+            {
+              "id": "texture",
+              "label": "Texture",
+              "type": "select",
+              "options": [
+                {
+                  "id": "pbr",
+                  "label": "PBR textures"
+                },
+                {
+                  "id": "texture",
+                  "label": "Color texture only"
+                },
+                {
+                  "id": "none",
+                  "label": "No texture (cheaper)"
+                }
+              ]
+            },
+            {
+              "id": "texture_quality",
+              "label": "Texture quality",
+              "type": "select",
+              "options": [
+                {
+                  "id": "standard",
+                  "label": "Standard"
+                },
+                {
+                  "id": "fast",
+                  "label": "Fast"
+                },
+                {
+                  "id": "detailed",
+                  "label": "HD (+10 credits)"
+                },
+                {
+                  "id": "extreme",
+                  "label": "8K ultra (+20 credits)"
+                }
+              ]
+            },
+            {
+              "id": "hd_geometry",
+              "label": "HD geometry (+20, v3.0+)",
+              "type": "boolean"
+            },
+            {
+              "id": "face_limit",
+              "label": "Max polygons (blank = adaptive)",
+              "type": "number"
+            },
+            {
+              "id": "quad",
+              "label": "Quad mesh, FBX (+5)",
+              "type": "boolean"
+            },
+            {
+              "id": "smart_low_poly",
+              "label": "Smart low-poly (+10)",
+              "type": "boolean"
+            },
+            {
+              "id": "generate_parts",
+              "label": "Separate parts, untextured (+20)",
+              "type": "boolean"
+            },
+            {
+              "id": "auto_size",
+              "label": "Real-world size in meters",
+              "type": "boolean"
+            },
+            {
+              "id": "orientation",
+              "label": "Orientation",
+              "type": "select",
+              "options": [
+                {
+                  "id": "default",
+                  "label": "Automatic"
+                },
+                {
+                  "id": "align_image",
+                  "label": "Face like the picture"
+                }
+              ]
+            },
+            {
+              "id": "texture_alignment",
+              "label": "Colors follow",
+              "type": "select",
+              "options": [
+                {
+                  "id": "original_image",
+                  "label": "The picture"
+                },
+                {
+                  "id": "geometry",
+                  "label": "The shape"
+                }
+              ]
+            },
+            {
+              "id": "image_autofix",
+              "label": "Clean up a low-quality picture first",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "tripo.multiview_to_3d",
+          "label": "Tripo Multi-view to 3D",
+          "group": "Tripo",
+          "exec": false,
+          "description": "A 3D model from 2–4 pictures of the same thing (front plus sides/back), or the views of a Tripo Image to Multi-view node. About 30 credits.",
+          "inputs": [
+            {
+              "id": "views",
+              "label": "Views",
+              "type": "images"
+            },
+            {
+              "id": "front",
+              "label": "Front",
+              "type": "image"
+            },
+            {
+              "id": "left",
+              "label": "Left",
+              "type": "image"
+            },
+            {
+              "id": "back",
+              "label": "Back",
+              "type": "image"
+            },
+            {
+              "id": "right",
+              "label": "Right",
+              "type": "image"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "preview",
+              "label": "Preview",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "model",
+              "label": "Model",
+              "type": "select",
+              "options": [
+                {
+                  "id": "v3.1-20260211",
+                  "label": "v3.1 — best quality"
+                },
+                {
+                  "id": "v3.0-20250812",
+                  "label": "v3.0"
+                },
+                {
+                  "id": "v2.5-20250123",
+                  "label": "v2.5 — balanced"
+                },
+                {
+                  "id": "P1-20260311",
+                  "label": "P1 — clean low-poly"
+                },
+                {
+                  "id": "P2-20260801",
+                  "label": "P2 — low-poly with quads (preview)"
+                }
+              ]
+            },
+            {
+              "id": "texture",
+              "label": "Texture",
+              "type": "select",
+              "options": [
+                {
+                  "id": "pbr",
+                  "label": "PBR textures"
+                },
+                {
+                  "id": "texture",
+                  "label": "Color texture only"
+                },
+                {
+                  "id": "none",
+                  "label": "No texture (cheaper)"
+                }
+              ]
+            },
+            {
+              "id": "texture_quality",
+              "label": "Texture quality",
+              "type": "select",
+              "options": [
+                {
+                  "id": "standard",
+                  "label": "Standard"
+                },
+                {
+                  "id": "fast",
+                  "label": "Fast"
+                },
+                {
+                  "id": "detailed",
+                  "label": "HD (+10 credits)"
+                },
+                {
+                  "id": "extreme",
+                  "label": "8K ultra (+20 credits)"
+                }
+              ]
+            },
+            {
+              "id": "hd_geometry",
+              "label": "HD geometry (+20, v3.0+)",
+              "type": "boolean"
+            },
+            {
+              "id": "face_limit",
+              "label": "Max polygons (blank = adaptive)",
+              "type": "number"
+            },
+            {
+              "id": "quad",
+              "label": "Quad mesh, FBX (+5)",
+              "type": "boolean"
+            },
+            {
+              "id": "smart_low_poly",
+              "label": "Smart low-poly (+10)",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "tripo.image_to_splat",
+          "label": "Tripo Image to Splat",
+          "group": "Tripo",
+          "exec": false,
+          "description": "A Gaussian splat (photo-like 3D capture, not a mesh) from one picture.",
+          "inputs": [
+            {
+              "id": "image",
+              "label": "Image",
+              "type": "image",
+              "required": true
+            }
+          ],
+          "outputs": [
+            {
+              "id": "splat",
+              "label": "Splat",
+              "type": "file"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "tripo.text_to_image",
+          "label": "Tripo Text to Image",
+          "group": "Tripo",
+          "exec": false,
+          "description": "A picture from your prompt (Seedream, Banana, Chat Image) — concept art or the picture for Image to 3D. 5–20 credits.",
+          "inputs": [
+            {
+              "id": "prompt",
+              "label": "Prompt",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "outputs": [
+            {
+              "id": "image",
+              "label": "Image",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "model",
+              "label": "Image model",
+              "type": "select",
+              "options": [
+                {
+                  "id": "seedream_v4",
+                  "label": "Seedream 4 (5)"
+                },
+                {
+                  "id": "seedream_v5",
+                  "label": "Seedream 5 (5)"
+                },
+                {
+                  "id": "banana",
+                  "label": "Banana (5)"
+                },
+                {
+                  "id": "banana2",
+                  "label": "Banana 2 (10)"
+                },
+                {
+                  "id": "banana_pro",
+                  "label": "Banana Pro (15)"
+                },
+                {
+                  "id": "chat_image_2",
+                  "label": "Chat Image 2 (10)"
+                },
+                {
+                  "id": "chat_image_2.5_flare",
+                  "label": "Chat Image 2.5 Flare (10)"
+                },
+                {
+                  "id": "chat_image_2.5_sunburst",
+                  "label": "Chat Image 2.5 Sunburst (10)"
+                }
+              ]
+            },
+            {
+              "id": "size",
+              "label": "Size (2K, 4K or 2048x1152; blank = model default)",
+              "type": "string"
+            },
+            {
+              "id": "aspect_ratio",
+              "label": "Aspect ratio (Banana models)",
+              "type": "select",
+              "options": [
+                {
+                  "id": "1:1",
+                  "label": "1:1"
+                },
+                {
+                  "id": "2:3",
+                  "label": "2:3"
+                },
+                {
+                  "id": "3:2",
+                  "label": "3:2"
+                },
+                {
+                  "id": "3:4",
+                  "label": "3:4"
+                },
+                {
+                  "id": "4:3",
+                  "label": "4:3"
+                },
+                {
+                  "id": "4:5",
+                  "label": "4:5"
+                },
+                {
+                  "id": "5:4",
+                  "label": "5:4"
+                },
+                {
+                  "id": "9:16",
+                  "label": "9:16"
+                },
+                {
+                  "id": "16:9",
+                  "label": "16:9"
+                },
+                {
+                  "id": "21:9",
+                  "label": "21:9"
+                }
+              ]
+            },
+            {
+              "id": "quality",
+              "label": "Quality (Chat Image models)",
+              "type": "select",
+              "options": [
+                {
+                  "id": "low",
+                  "label": "Low"
+                },
+                {
+                  "id": "medium",
+                  "label": "Medium"
+                },
+                {
+                  "id": "high",
+                  "label": "High"
+                },
+                {
+                  "id": "xhigh",
+                  "label": "Extra high (2.5)"
+                },
+                {
+                  "id": "max",
+                  "label": "Max (2.5)"
+                }
+              ]
+            },
+            {
+              "id": "background",
+              "label": "Background (2.5 models)",
+              "type": "select",
+              "options": [
+                {
+                  "id": "auto",
+                  "label": "Auto"
+                },
+                {
+                  "id": "opaque",
+                  "label": "Solid"
+                },
+                {
+                  "id": "transparent",
+                  "label": "See-through"
+                }
+              ]
+            },
+            {
+              "id": "template",
+              "label": "Template",
+              "type": "select",
+              "options": [
+                {
+                  "id": "t_pose",
+                  "label": "T-pose character"
+                },
+                {
+                  "id": "character_completion",
+                  "label": "Complete the character"
+                },
+                {
+                  "id": "3d_enhance",
+                  "label": "Ready for 3D"
+                },
+                {
+                  "id": "variants",
+                  "label": "Variants"
+                },
+                {
+                  "id": "figure",
+                  "label": "Figure"
+                },
+                {
+                  "id": "asset_extraction",
+                  "label": "Pull the object out"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tripo.edit_image",
+          "label": "Tripo Edit Image",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Changes a picture the way your prompt says, or by a template (T-pose, ready for 3D, variants). More pictures can be wired as references.",
+          "inputs": [
+            {
+              "id": "image",
+              "label": "Image",
+              "type": "image",
+              "required": true
+            },
+            {
+              "id": "prompt",
+              "label": "Change",
+              "type": "text"
+            },
+            {
+              "id": "refs",
+              "label": "References",
+              "type": "images"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "image",
+              "label": "Image",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "model",
+              "label": "Image model",
+              "type": "select",
+              "options": [
+                {
+                  "id": "seedream_v4",
+                  "label": "Seedream 4 (5)"
+                },
+                {
+                  "id": "seedream_v5",
+                  "label": "Seedream 5 (5)"
+                },
+                {
+                  "id": "banana",
+                  "label": "Banana (5)"
+                },
+                {
+                  "id": "banana2",
+                  "label": "Banana 2 (10)"
+                },
+                {
+                  "id": "banana_pro",
+                  "label": "Banana Pro (15)"
+                },
+                {
+                  "id": "chat_image_2",
+                  "label": "Chat Image 2 (10)"
+                },
+                {
+                  "id": "chat_image_2.5_flare",
+                  "label": "Chat Image 2.5 Flare (10)"
+                },
+                {
+                  "id": "chat_image_2.5_sunburst",
+                  "label": "Chat Image 2.5 Sunburst (10)"
+                }
+              ]
+            },
+            {
+              "id": "template",
+              "label": "Template",
+              "type": "select",
+              "options": [
+                {
+                  "id": "t_pose",
+                  "label": "T-pose character"
+                },
+                {
+                  "id": "character_completion",
+                  "label": "Complete the character"
+                },
+                {
+                  "id": "3d_enhance",
+                  "label": "Ready for 3D"
+                },
+                {
+                  "id": "variants",
+                  "label": "Variants"
+                },
+                {
+                  "id": "figure",
+                  "label": "Figure"
+                },
+                {
+                  "id": "asset_extraction",
+                  "label": "Pull the object out"
+                }
+              ]
+            },
+            {
+              "id": "size",
+              "label": "Size (2K, 4K or 2048x1152; blank = model default)",
+              "type": "string"
+            },
+            {
+              "id": "aspect_ratio",
+              "label": "Aspect ratio (Banana models)",
+              "type": "select",
+              "options": [
+                {
+                  "id": "1:1",
+                  "label": "1:1"
+                },
+                {
+                  "id": "2:3",
+                  "label": "2:3"
+                },
+                {
+                  "id": "3:2",
+                  "label": "3:2"
+                },
+                {
+                  "id": "3:4",
+                  "label": "3:4"
+                },
+                {
+                  "id": "4:3",
+                  "label": "4:3"
+                },
+                {
+                  "id": "4:5",
+                  "label": "4:5"
+                },
+                {
+                  "id": "5:4",
+                  "label": "5:4"
+                },
+                {
+                  "id": "9:16",
+                  "label": "9:16"
+                },
+                {
+                  "id": "16:9",
+                  "label": "16:9"
+                },
+                {
+                  "id": "21:9",
+                  "label": "21:9"
+                }
+              ]
+            },
+            {
+              "id": "quality",
+              "label": "Quality (Chat Image models)",
+              "type": "select",
+              "options": [
+                {
+                  "id": "low",
+                  "label": "Low"
+                },
+                {
+                  "id": "medium",
+                  "label": "Medium"
+                },
+                {
+                  "id": "high",
+                  "label": "High"
+                },
+                {
+                  "id": "xhigh",
+                  "label": "Extra high (2.5)"
+                },
+                {
+                  "id": "max",
+                  "label": "Max (2.5)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tripo.image_to_multiview",
+          "label": "Tripo Image to Multi-view",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Front, left, back and right views from one picture, for Multi-view to 3D. About 10 credits.",
+          "inputs": [
+            {
+              "id": "image",
+              "label": "Image",
+              "type": "image",
+              "required": true
+            }
+          ],
+          "outputs": [
+            {
+              "id": "views",
+              "label": "Views",
+              "type": "images"
+            },
+            {
+              "id": "front",
+              "label": "Front",
+              "type": "image"
+            },
+            {
+              "id": "left",
+              "label": "Left",
+              "type": "image"
+            },
+            {
+              "id": "back",
+              "label": "Back",
+              "type": "image"
+            },
+            {
+              "id": "right",
+              "label": "Right",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "tripo.edit_multiview",
+          "label": "Tripo Edit Multi-view",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Changes some views of a Tripo multi-view set by prompt (one prompt per view). About 5 credits per view.",
+          "inputs": [
+            {
+              "id": "views",
+              "label": "Views",
+              "type": "images",
+              "required": true
+            },
+            {
+              "id": "front_edit",
+              "label": "Front change",
+              "type": "text"
+            },
+            {
+              "id": "left_edit",
+              "label": "Left change",
+              "type": "text"
+            },
+            {
+              "id": "back_edit",
+              "label": "Back change",
+              "type": "text"
+            },
+            {
+              "id": "right_edit",
+              "label": "Right change",
+              "type": "text"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "views",
+              "label": "Views",
+              "type": "images"
+            },
+            {
+              "id": "front",
+              "label": "Front",
+              "type": "image"
+            },
+            {
+              "id": "left",
+              "label": "Left",
+              "type": "image"
+            },
+            {
+              "id": "back",
+              "label": "Back",
+              "type": "image"
+            },
+            {
+              "id": "right",
+              "label": "Right",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "tripo.texture",
+          "label": "Tripo Texture Model",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Paints a model (Tripo's or any GLB/FBX/OBJ) from a prompt, a style picture or a reference picture. 10–30 credits.",
+          "inputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh",
+              "required": true
+            },
+            {
+              "id": "prompt",
+              "label": "Style",
+              "type": "text"
+            },
+            {
+              "id": "image",
+              "label": "Reference picture",
+              "type": "image"
+            },
+            {
+              "id": "style_image",
+              "label": "Style picture",
+              "type": "image"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "preview",
+              "label": "Preview",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "texture_quality",
+              "label": "Texture quality",
+              "type": "select",
+              "options": [
+                {
+                  "id": "standard",
+                  "label": "Standard"
+                },
+                {
+                  "id": "fast",
+                  "label": "Fast"
+                },
+                {
+                  "id": "detailed",
+                  "label": "HD (+10 credits)"
+                },
+                {
+                  "id": "extreme",
+                  "label": "8K ultra (+20 credits)"
+                }
+              ]
+            },
+            {
+              "id": "no_pbr",
+              "label": "Plain colors (no PBR maps)",
+              "type": "boolean"
+            },
+            {
+              "id": "texture_alignment",
+              "label": "Colors follow",
+              "type": "select",
+              "options": [
+                {
+                  "id": "original_image",
+                  "label": "The picture"
+                },
+                {
+                  "id": "geometry",
+                  "label": "The shape"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tripo.retopology",
+          "label": "Tripo Retopology",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Clean, game-ready low-poly topology with the textures baked on (500–20,000 triangles or 500–10,000 quads). 10–40 credits.",
+          "inputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh",
+              "required": true
+            },
+            {
+              "id": "polycount",
+              "label": "Target polygons",
+              "type": "number"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "preview",
+              "label": "Preview",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "version",
+              "label": "Engine",
+              "type": "select",
+              "options": [
+                {
+                  "id": "v3.0",
+                  "label": "v3.0 — best (35 tri / 40 quad)"
+                },
+                {
+                  "id": "v2.0",
+                  "label": "v2.0 — smart (30)"
+                },
+                {
+                  "id": "v1.0",
+                  "label": "v1.0 — basic (10)"
+                }
+              ]
+            },
+            {
+              "id": "quad",
+              "label": "Quads",
+              "type": "boolean"
+            },
+            {
+              "id": "smart_uv",
+              "label": "Smart UVs too (v3.0)",
+              "type": "boolean"
+            },
+            {
+              "id": "face_limit",
+              "label": "Target polygons",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "id": "tripo.smart_uv",
+          "label": "Tripo Smart UV",
+          "group": "Tripo",
+          "exec": false,
+          "description": "New clean UVs (up to 80k triangles) with the textures re-baked onto them, plus a picture of the UV layout. About 20 credits.",
+          "inputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh",
+              "required": true
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "uv",
+              "label": "UV layout",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "no_bake",
+              "label": "UVs only (don't re-bake textures)",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "tripo.segment",
+          "label": "Tripo Segment Parts",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Splits a model into parts (v2.0 names them). Wire into Complete Parts to close the hidden sides. About 40 credits.",
+          "inputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh",
+              "required": true
+            },
+            {
+              "id": "ref_image",
+              "label": "Reference picture (v2.0)",
+              "type": "image"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "preview",
+              "label": "Preview",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "version",
+              "label": "Engine",
+              "type": "select",
+              "options": [
+                {
+                  "id": "v1.0-20250506",
+                  "label": "v1.0 — by shape"
+                },
+                {
+                  "id": "v2.0-20260430",
+                  "label": "v2.0 — named parts (beta)"
+                }
+              ]
+            },
+            {
+              "id": "granularity",
+              "label": "Detail (v2.0)",
+              "type": "select",
+              "options": [
+                {
+                  "id": "simple",
+                  "label": "Few parts"
+                },
+                {
+                  "id": "balanced",
+                  "label": "Balanced"
+                },
+                {
+                  "id": "detailed",
+                  "label": "Many parts"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tripo.complete_parts",
+          "label": "Tripo Complete Parts",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Fills in the hidden and open sides of segmented parts so each is a whole piece. 30–50 credits.",
+          "inputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh",
+              "required": true
+            },
+            {
+              "id": "parts",
+              "label": "Only these parts",
+              "type": "text"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "preview",
+              "label": "Preview",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "mode",
+              "label": "How",
+              "type": "select",
+              "options": [
+                {
+                  "id": "ai_completion",
+                  "label": "AI completion (50)"
+                },
+                {
+                  "id": "quick_cap",
+                  "label": "Quick hole fill (30)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tripo.convert",
+          "label": "Tripo Convert",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Turns a model into FBX, GLTF, OBJ, USDZ, STL or 3MF, with an FBX preset, pivot at the bottom, scale or fewer polygons. 5 credits (10 with options).",
+          "inputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh",
+              "required": true
+            },
+            {
+              "id": "polycount",
+              "label": "Max polygons",
+              "type": "number"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "preview",
+              "label": "Preview",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "format",
+              "label": "Format",
+              "type": "select",
+              "options": [
+                {
+                  "id": "FBX",
+                  "label": "FBX"
+                },
+                {
+                  "id": "GLTF",
+                  "label": "GLB / glTF"
+                },
+                {
+                  "id": "OBJ",
+                  "label": "OBJ"
+                },
+                {
+                  "id": "USDZ",
+                  "label": "USDZ"
+                },
+                {
+                  "id": "STL",
+                  "label": "STL"
+                },
+                {
+                  "id": "3MF",
+                  "label": "3MF"
+                }
+              ]
+            },
+            {
+              "id": "fbx_preset",
+              "label": "FBX preset",
+              "type": "select",
+              "options": [
+                {
+                  "id": "blender",
+                  "label": "Blender"
+                },
+                {
+                  "id": "3dsmax",
+                  "label": "3ds Max"
+                },
+                {
+                  "id": "mixamo",
+                  "label": "Mixamo"
+                },
+                {
+                  "id": "bake_scale",
+                  "label": "Bake scale"
+                }
+              ]
+            },
+            {
+              "id": "pivot_bottom",
+              "label": "Pivot at the bottom center",
+              "type": "boolean"
+            },
+            {
+              "id": "scale",
+              "label": "Scale",
+              "type": "number"
+            },
+            {
+              "id": "texture_size",
+              "label": "Texture size (px)",
+              "type": "number"
+            },
+            {
+              "id": "quad",
+              "label": "Quads",
+              "type": "boolean"
+            },
+            {
+              "id": "flatten_bottom",
+              "label": "Flatten the bottom",
+              "type": "boolean"
+            },
+            {
+              "id": "in_place",
+              "label": "Animations in place",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "tripo.stylize",
+          "label": "Tripo Stylize",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Remakes a Tripo model as LEGO, voxels, Minecraft blocks, voronoi, a keyring, fridge magnet or keycap.",
+          "inputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh",
+              "required": true
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "preview",
+              "label": "Preview",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "style",
+              "label": "Style",
+              "type": "select",
+              "options": [
+                {
+                  "id": "lego",
+                  "label": "Lego"
+                },
+                {
+                  "id": "voxel",
+                  "label": "Voxel"
+                },
+                {
+                  "id": "minecraft",
+                  "label": "Minecraft"
+                },
+                {
+                  "id": "voronoi",
+                  "label": "Voronoi"
+                },
+                {
+                  "id": "keyring",
+                  "label": "Keyring"
+                },
+                {
+                  "id": "fridge_magnet",
+                  "label": "Fridge Magnet"
+                },
+                {
+                  "id": "keycap",
+                  "label": "Keycap"
+                }
+              ]
+            },
+            {
+              "id": "block_size",
+              "label": "Block size",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "id": "tripo.rig_check",
+          "label": "Tripo Rig Check",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Free: whether a model can be rigged and which skeleton fits (biped, quadruped, avian…).",
+          "inputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh",
+              "required": true
+            }
+          ],
+          "outputs": [
+            {
+              "id": "riggable",
+              "label": "Riggable",
+              "type": "boolean"
+            },
+            {
+              "id": "rig_type",
+              "label": "Rig type",
+              "type": "text"
+            },
+            {
+              "id": "info",
+              "label": "Info",
+              "type": "json"
+            }
+          ],
+          "config_fields": []
+        },
+        {
+          "id": "tripo.rig",
+          "label": "Tripo Auto Rig",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Adds a skeleton and skin to a character or creature (Auto picks the skeleton with a free rig check). Unreal spec = UE mannequin bones. About 25 credits.",
+          "inputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh",
+              "required": true
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "preview",
+              "label": "Preview",
+              "type": "image"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            },
+            {
+              "id": "task_id",
+              "label": "Tripo task",
+              "type": "text"
+            },
+            {
+              "id": "rig_type",
+              "label": "Rig type",
+              "type": "text"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "rig_type",
+              "label": "Skeleton",
+              "type": "select",
+              "options": [
+                {
+                  "id": "auto",
+                  "label": "Auto (free rig check)"
+                },
+                {
+                  "id": "biped",
+                  "label": "Biped"
+                },
+                {
+                  "id": "quadruped",
+                  "label": "Quadruped"
+                },
+                {
+                  "id": "hexapod",
+                  "label": "Hexapod"
+                },
+                {
+                  "id": "octopod",
+                  "label": "Octopod"
+                },
+                {
+                  "id": "avian",
+                  "label": "Avian"
+                },
+                {
+                  "id": "serpentine",
+                  "label": "Serpentine"
+                },
+                {
+                  "id": "aquatic",
+                  "label": "Aquatic"
+                },
+                {
+                  "id": "others",
+                  "label": "Others"
+                }
+              ]
+            },
+            {
+              "id": "spec",
+              "label": "Bone names (biped)",
+              "type": "select",
+              "options": [
+                {
+                  "id": "tripo",
+                  "label": "Tripo"
+                },
+                {
+                  "id": "mixamo",
+                  "label": "Mixamo"
+                },
+                {
+                  "id": "unreal",
+                  "label": "Unreal (UE mannequin)"
+                },
+                {
+                  "id": "unity",
+                  "label": "Unity"
+                },
+                {
+                  "id": "actorcore",
+                  "label": "ActorCore"
+                },
+                {
+                  "id": "vrm",
+                  "label": "VRM"
+                }
+              ]
+            },
+            {
+              "id": "out_format",
+              "label": "File",
+              "type": "select",
+              "options": [
+                {
+                  "id": "fbx",
+                  "label": "FBX"
+                },
+                {
+                  "id": "glb",
+                  "label": "GLB"
+                }
+              ]
+            },
+            {
+              "id": "version",
+              "label": "Rig engine",
+              "type": "select",
+              "options": [
+                {
+                  "id": "auto",
+                  "label": "Auto"
+                },
+                {
+                  "id": "v1.0-20240301",
+                  "label": "v1.0 — humanoids, 100+ animations"
+                },
+                {
+                  "id": "v2.5-20260210",
+                  "label": "v2.5 — creatures"
+                },
+                {
+                  "id": "v3.0-20260909",
+                  "label": "v3.0 — Unreal/Unity/VRM specs"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tripo.animate",
+          "label": "Tripo Animate",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Animations for a model from Tripo Auto Rig (idle, walk, run, jump, dance_01, wave_goodbye_01…; one model per animation). About 10 credits each.",
+          "inputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh",
+              "required": true
+            },
+            {
+              "id": "animations",
+              "label": "Animations",
+              "type": "text"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "mesh",
+              "label": "3D model",
+              "type": "mesh"
+            },
+            {
+              "id": "meshes",
+              "label": "All animations",
+              "type": "json"
+            },
+            {
+              "id": "files",
+              "label": "All files",
+              "type": "json"
+            }
+          ],
+          "config_fields": [
+            {
+              "id": "spend",
+              "label": "Spend credits",
+              "type": "boolean"
+            },
+            {
+              "id": "animations",
+              "label": "Animations (comma-separated, up to 10)",
+              "type": "string"
+            },
+            {
+              "id": "out_format",
+              "label": "File",
+              "type": "select",
+              "options": [
+                {
+                  "id": "fbx",
+                  "label": "FBX"
+                },
+                {
+                  "id": "glb",
+                  "label": "GLB"
+                }
+              ]
+            },
+            {
+              "id": "in_place",
+              "label": "In place (no root motion)",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "tripo.balance",
+          "label": "Tripo Balance",
+          "group": "Tripo",
+          "exec": false,
+          "description": "Free: how many Tripo credits are left and how many running jobs hold.",
+          "inputs": [],
+          "outputs": [
+            {
+              "id": "balance",
+              "label": "Credits",
+              "type": "number"
+            },
+            {
+              "id": "frozen",
+              "label": "Held",
+              "type": "number"
+            }
+          ],
+          "config_fields": []
+        }
+      ],
+      "templates": [
+        {
+          "id": "tripo-prompt-3d-uefn",
+          "label": "Tripo: prompt to 3D model in UEFN",
+          "icon": "🧊",
+          "category": "3D",
+          "description": "Prompt → textured 3D model (Tripo v3.1) → origin at the bottom center → imported into your open UEFN project. Turn on Spend credits on the Tripo steps before the first run.",
+          "graph": {
+            "nodes": [
+              {
+                "id": "q",
+                "type": "input.text",
+                "x": 0,
+                "y": 0,
+                "config": {
+                  "value": "A stylized treasure chest, game-ready prop"
+                },
+                "label": "Prompt"
+              },
+              {
+                "id": "m",
+                "type": "tripo.text_to_3d",
+                "x": 300,
+                "y": 0,
+                "config": {
+                  "model": "v3.1-20260211"
+                }
+              },
+              {
+                "id": "o",
+                "type": "mesh.set_origin",
+                "x": 600,
+                "y": 0,
+                "config": {
+                  "x": "center",
+                  "y": "min",
+                  "z": "center"
+                }
+              },
+              {
+                "id": "u",
+                "type": "uefn.import",
+                "x": 900,
+                "y": 0,
+                "config": {
+                  "folder": "Tripo/Props"
+                }
+              },
+              {
+                "id": "p",
+                "type": "util.preview",
+                "x": 1200,
+                "y": 0,
+                "config": {},
+                "label": "In UEFN"
+              }
+            ],
+            "edges": [
+              {
+                "source": "q",
+                "target": "m",
+                "kind": "data",
+                "source_pin": "text",
+                "target_pin": "prompt"
+              },
+              {
+                "source": "m",
+                "target": "o",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "mesh"
+              },
+              {
+                "source": "o",
+                "target": "u",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "file"
+              },
+              {
+                "source": "u",
+                "target": "p",
+                "kind": "data",
+                "source_pin": "asset",
+                "target_pin": "value"
+              }
+            ]
+          },
+          "requires_plugins": [
+            "tripo"
+          ]
+        },
+        {
+          "id": "tripo-image-3d-uefn",
+          "label": "Tripo: picture to 3D model in UEFN",
+          "icon": "📸",
+          "category": "3D",
+          "description": "One picture → 3D model (Tripo) → origin at the bottom center → into UEFN. Turn on Spend credits on the Tripo steps before the first run.",
+          "graph": {
+            "nodes": [
+              {
+                "id": "img",
+                "type": "input.image",
+                "x": 0,
+                "y": 0,
+                "config": {},
+                "label": "Picture"
+              },
+              {
+                "id": "m",
+                "type": "tripo.image_to_3d",
+                "x": 300,
+                "y": 0,
+                "config": {}
+              },
+              {
+                "id": "o",
+                "type": "mesh.set_origin",
+                "x": 600,
+                "y": 0,
+                "config": {
+                  "x": "center",
+                  "y": "min",
+                  "z": "center"
+                }
+              },
+              {
+                "id": "u",
+                "type": "uefn.import",
+                "x": 900,
+                "y": 0,
+                "config": {
+                  "folder": "Tripo/Props"
+                }
+              },
+              {
+                "id": "p",
+                "type": "util.preview",
+                "x": 1200,
+                "y": 0,
+                "config": {},
+                "label": "In UEFN"
+              }
+            ],
+            "edges": [
+              {
+                "source": "img",
+                "target": "m",
+                "kind": "data",
+                "source_pin": "image",
+                "target_pin": "image"
+              },
+              {
+                "source": "m",
+                "target": "o",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "mesh"
+              },
+              {
+                "source": "o",
+                "target": "u",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "file"
+              },
+              {
+                "source": "u",
+                "target": "p",
+                "kind": "data",
+                "source_pin": "asset",
+                "target_pin": "value"
+              }
+            ]
+          },
+          "requires_plugins": [
+            "tripo"
+          ]
+        },
+        {
+          "id": "tripo-character-uefn",
+          "label": "Tripo: prompt → rigged, animated character → UEFN",
+          "icon": "🕺",
+          "category": "Characters",
+          "description": "A character from your prompt, auto-rigged (the free rig check picks the skeleton), animated (idle, walk, run) and imported into UEFN as FBX. Turn on Spend credits on the Tripo steps before the first run.",
+          "graph": {
+            "nodes": [
+              {
+                "id": "q",
+                "type": "input.text",
+                "x": 0,
+                "y": 0,
+                "config": {
+                  "value": "A cartoon duck adventurer, full body, A-pose, game character"
+                },
+                "label": "Character"
+              },
+              {
+                "id": "m",
+                "type": "tripo.text_to_3d",
+                "x": 300,
+                "y": 0,
+                "config": {}
+              },
+              {
+                "id": "r",
+                "type": "tripo.rig",
+                "x": 600,
+                "y": 0,
+                "config": {
+                  "rig_type": "auto",
+                  "out_format": "fbx"
+                }
+              },
+              {
+                "id": "a",
+                "type": "tripo.animate",
+                "x": 900,
+                "y": 0,
+                "config": {
+                  "animations": "idle, walk, run",
+                  "out_format": "fbx"
+                }
+              },
+              {
+                "id": "u",
+                "type": "uefn.import",
+                "x": 1200,
+                "y": 0,
+                "config": {
+                  "folder": "Tripo/Characters"
+                }
+              },
+              {
+                "id": "p",
+                "type": "util.preview",
+                "x": 1500,
+                "y": 0,
+                "config": {},
+                "label": "In UEFN"
+              }
+            ],
+            "edges": [
+              {
+                "source": "q",
+                "target": "m",
+                "kind": "data",
+                "source_pin": "text",
+                "target_pin": "prompt"
+              },
+              {
+                "source": "m",
+                "target": "r",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "mesh"
+              },
+              {
+                "source": "r",
+                "target": "a",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "mesh"
+              },
+              {
+                "source": "a",
+                "target": "u",
+                "kind": "data",
+                "source_pin": "meshes",
+                "target_pin": "file"
+              },
+              {
+                "source": "u",
+                "target": "p",
+                "kind": "data",
+                "source_pin": "assets",
+                "target_pin": "value"
+              }
+            ]
+          },
+          "requires_plugins": [
+            "tripo"
+          ]
+        },
+        {
+          "id": "tripo-concept-multiview-3d",
+          "label": "Tripo: prompt → concept → 4 views → 3D model",
+          "icon": "🎯",
+          "category": "3D",
+          "description": "A concept picture from your prompt, turned into front/left/back/right views, then one 3D model from all four (best shape from every side). Turn on Spend credits on the Tripo steps before the first run.",
+          "graph": {
+            "nodes": [
+              {
+                "id": "q",
+                "type": "input.text",
+                "x": 0,
+                "y": 0,
+                "config": {
+                  "value": "A cute robot mascot, full body, plain background"
+                },
+                "label": "Prompt"
+              },
+              {
+                "id": "img",
+                "type": "tripo.text_to_image",
+                "x": 300,
+                "y": 0,
+                "config": {
+                  "model": "seedream_v4"
+                }
+              },
+              {
+                "id": "mv",
+                "type": "tripo.image_to_multiview",
+                "x": 600,
+                "y": 0,
+                "config": {}
+              },
+              {
+                "id": "m",
+                "type": "tripo.multiview_to_3d",
+                "x": 900,
+                "y": 0,
+                "config": {}
+              },
+              {
+                "id": "p",
+                "type": "util.preview",
+                "x": 1200,
+                "y": 0,
+                "config": {},
+                "label": "Model"
+              }
+            ],
+            "edges": [
+              {
+                "source": "q",
+                "target": "img",
+                "kind": "data",
+                "source_pin": "text",
+                "target_pin": "prompt"
+              },
+              {
+                "source": "img",
+                "target": "mv",
+                "kind": "data",
+                "source_pin": "image",
+                "target_pin": "image"
+              },
+              {
+                "source": "mv",
+                "target": "m",
+                "kind": "data",
+                "source_pin": "views",
+                "target_pin": "views"
+              },
+              {
+                "source": "m",
+                "target": "p",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "value"
+              }
+            ]
+          },
+          "requires_plugins": [
+            "tripo"
+          ]
+        },
+        {
+          "id": "tripo-game-ready",
+          "label": "Tripo: make any model game-ready",
+          "icon": "🛠️",
+          "category": "3D",
+          "description": "Pick a model: clean low-poly retopology (8,000 triangles, smart UVs, textures baked), origin at the bottom, then into UEFN. Turn on Spend credits on the Tripo steps before the first run.",
+          "graph": {
+            "nodes": [
+              {
+                "id": "mesh",
+                "type": "input.mesh",
+                "x": 0,
+                "y": 0,
+                "config": {},
+                "label": "Model"
+              },
+              {
+                "id": "r",
+                "type": "tripo.retopology",
+                "x": 300,
+                "y": 0,
+                "config": {
+                  "version": "v3.0",
+                  "smart_uv": true
+                },
+                "label": {
+                  "polycount": 8000
+                }
+              },
+              {
+                "id": "o",
+                "type": "mesh.set_origin",
+                "x": 600,
+                "y": 0,
+                "config": {
+                  "x": "center",
+                  "y": "min",
+                  "z": "center"
+                }
+              },
+              {
+                "id": "u",
+                "type": "uefn.import",
+                "x": 900,
+                "y": 0,
+                "config": {
+                  "folder": "Tripo/Props"
+                }
+              },
+              {
+                "id": "p",
+                "type": "util.preview",
+                "x": 1200,
+                "y": 0,
+                "config": {},
+                "label": "In UEFN"
+              }
+            ],
+            "edges": [
+              {
+                "source": "mesh",
+                "target": "r",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "mesh"
+              },
+              {
+                "source": "r",
+                "target": "o",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "mesh"
+              },
+              {
+                "source": "o",
+                "target": "u",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "file"
+              },
+              {
+                "source": "u",
+                "target": "p",
+                "kind": "data",
+                "source_pin": "asset",
+                "target_pin": "value"
+              }
+            ]
+          },
+          "requires_plugins": [
+            "tripo"
+          ]
+        },
+        {
+          "id": "tripo-retexture",
+          "label": "Tripo: repaint a model",
+          "icon": "🖌️",
+          "category": "3D",
+          "description": "Pick a model and describe a look; Tripo paints it again with PBR textures. Turn on Spend credits on the Tripo steps before the first run.",
+          "graph": {
+            "nodes": [
+              {
+                "id": "mesh",
+                "type": "input.mesh",
+                "x": 0,
+                "y": 0,
+                "config": {},
+                "label": "Model"
+              },
+              {
+                "id": "style",
+                "type": "input.text",
+                "x": 0,
+                "y": 160,
+                "config": {
+                  "value": "hand-painted, bright cartoon colors"
+                },
+                "label": "Style"
+              },
+              {
+                "id": "tx",
+                "type": "tripo.texture",
+                "x": 300,
+                "y": 60,
+                "config": {}
+              },
+              {
+                "id": "p",
+                "type": "util.preview",
+                "x": 600,
+                "y": 60,
+                "config": {},
+                "label": "Repainted"
+              }
+            ],
+            "edges": [
+              {
+                "source": "mesh",
+                "target": "tx",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "mesh"
+              },
+              {
+                "source": "style",
+                "target": "tx",
+                "kind": "data",
+                "source_pin": "text",
+                "target_pin": "prompt"
+              },
+              {
+                "source": "tx",
+                "target": "p",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "value"
+              }
+            ]
+          },
+          "requires_plugins": [
+            "tripo"
+          ]
+        },
+        {
+          "id": "tripo-lego",
+          "label": "Tripo: prompt → LEGO-style model",
+          "icon": "🧱",
+          "category": "3D",
+          "description": "A model from your prompt, remade out of LEGO-style bricks (switch Style to voxel or Minecraft in its details). Turn on Spend credits on the Tripo steps before the first run.",
+          "graph": {
+            "nodes": [
+              {
+                "id": "q",
+                "type": "input.text",
+                "x": 0,
+                "y": 0,
+                "config": {
+                  "value": "A small castle with two towers"
+                },
+                "label": "Prompt"
+              },
+              {
+                "id": "m",
+                "type": "tripo.text_to_3d",
+                "x": 300,
+                "y": 0,
+                "config": {}
+              },
+              {
+                "id": "s",
+                "type": "tripo.stylize",
+                "x": 600,
+                "y": 0,
+                "config": {
+                  "style": "lego"
+                }
+              },
+              {
+                "id": "p",
+                "type": "util.preview",
+                "x": 900,
+                "y": 0,
+                "config": {},
+                "label": "Bricks"
+              }
+            ],
+            "edges": [
+              {
+                "source": "q",
+                "target": "m",
+                "kind": "data",
+                "source_pin": "text",
+                "target_pin": "prompt"
+              },
+              {
+                "source": "m",
+                "target": "s",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "mesh"
+              },
+              {
+                "source": "s",
+                "target": "p",
+                "kind": "data",
+                "source_pin": "mesh",
+                "target_pin": "value"
+              }
+            ]
+          },
+          "requires_plugins": [
+            "tripo"
+          ]
+        }
+      ],
+      "image_generators": [
+        {
+          "id": "tripo_seedream_v4",
+          "label": "Tripo · Seedream 4",
+          "tool": "tripo_text_to_image",
+          "credits": 5,
+          "args": {
+            "model": "seedream_v4"
+          },
+          "config_fields": [
+            {
+              "id": "size",
+              "label": "Size (2K, 4K or 2048x1152; blank = model default)",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "id": "tripo_seedream_v5",
+          "label": "Tripo · Seedream 5",
+          "tool": "tripo_text_to_image",
+          "credits": 5,
+          "args": {
+            "model": "seedream_v5"
+          },
+          "config_fields": [
+            {
+              "id": "size",
+              "label": "Size (2K, 4K or 2048x1152; blank = model default)",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "id": "tripo_banana2",
+          "label": "Tripo · Banana 2",
+          "tool": "tripo_text_to_image",
+          "credits": 10,
+          "args": {
+            "model": "banana2"
+          },
+          "config_fields": [
+            {
+              "id": "size",
+              "label": "Size (2K, 4K or 2048x1152; blank = model default)",
+              "type": "string"
+            },
+            {
+              "id": "aspect_ratio",
+              "label": "Aspect ratio (Banana models)",
+              "type": "select",
+              "options": [
+                {
+                  "id": "1:1",
+                  "label": "1:1"
+                },
+                {
+                  "id": "2:3",
+                  "label": "2:3"
+                },
+                {
+                  "id": "3:2",
+                  "label": "3:2"
+                },
+                {
+                  "id": "3:4",
+                  "label": "3:4"
+                },
+                {
+                  "id": "4:3",
+                  "label": "4:3"
+                },
+                {
+                  "id": "4:5",
+                  "label": "4:5"
+                },
+                {
+                  "id": "5:4",
+                  "label": "5:4"
+                },
+                {
+                  "id": "9:16",
+                  "label": "9:16"
+                },
+                {
+                  "id": "16:9",
+                  "label": "16:9"
+                },
+                {
+                  "id": "21:9",
+                  "label": "21:9"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tripo_banana_pro",
+          "label": "Tripo · Banana Pro",
+          "tool": "tripo_text_to_image",
+          "credits": 15,
+          "args": {
+            "model": "banana_pro"
+          },
+          "config_fields": [
+            {
+              "id": "size",
+              "label": "Size (2K, 4K or 2048x1152; blank = model default)",
+              "type": "string"
+            },
+            {
+              "id": "aspect_ratio",
+              "label": "Aspect ratio (Banana models)",
+              "type": "select",
+              "options": [
+                {
+                  "id": "1:1",
+                  "label": "1:1"
+                },
+                {
+                  "id": "2:3",
+                  "label": "2:3"
+                },
+                {
+                  "id": "3:2",
+                  "label": "3:2"
+                },
+                {
+                  "id": "3:4",
+                  "label": "3:4"
+                },
+                {
+                  "id": "4:3",
+                  "label": "4:3"
+                },
+                {
+                  "id": "4:5",
+                  "label": "4:5"
+                },
+                {
+                  "id": "5:4",
+                  "label": "5:4"
+                },
+                {
+                  "id": "9:16",
+                  "label": "9:16"
+                },
+                {
+                  "id": "16:9",
+                  "label": "16:9"
+                },
+                {
+                  "id": "21:9",
+                  "label": "21:9"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tripo_chat_image_2",
+          "label": "Tripo · Chat Image 2",
+          "tool": "tripo_text_to_image",
+          "credits": 10,
+          "args": {
+            "model": "chat_image_2"
+          },
+          "config_fields": [
+            {
+              "id": "size",
+              "label": "Size (2K, 4K or 2048x1152; blank = model default)",
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "backend": {
+    "entry": "backend",
+    "register": "register"
+  }
+}
