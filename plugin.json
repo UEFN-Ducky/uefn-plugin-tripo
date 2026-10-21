@@ -6,6 +6,7 @@
   "description": "Tripo AI (studio.tripo3d.ai) API — text/image/multi-view to 3D, text/image to picture, texture, retopology, smart UV, segment and complete parts, convert, LEGO/voxel stylize, auto-rig and animate. Agent tools plus workflow nodes; import into Blender or UEFN.",
   "min_app_version": "1.0.0",
   "default_enabled": false,
+  "data_sharing": false,
   "secret_keys": [
     "tripo_api_key"
   ],
