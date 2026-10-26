@@ -449,6 +449,10 @@ def test_character_bundle() -> None:
     keys = [w["key"] for w in bundle["workflows"]]
     assert len(keys) == len(set(keys)) and set(keys) == {"character", "spec", "sheet", "make3d", "rig", "gear", "ship"}
     declared = {r["id"] for r in manifest["contributes"]["automations"]["nodes"]}
+    sheet = next(w for w in bundle["workflows"] if w["key"] == "sheet")
+    for wf in bundle["workflows"]:  # it only runs on a paid 3D AI Studio backend
+        assert not [n for n in wf["graph"]["nodes"] if n["type"] == "image.remove_bg"], wf["key"]
+    assert sheet
     for wf in bundle["workflows"]:
         nodes = {n["id"]: n for n in wf["graph"]["nodes"]}
         for node in nodes.values():
