@@ -852,11 +852,17 @@ def rig_info(client: "TripoClient", rig_task_id: str, version: str = "", kind: s
     return version, kind
 
 
+ANIMATION_ALIASES = {"attack": "slash", "bite": "slash", "claw": "slash", "strike": "slash", "hit": "hurt",
+                     "damage": "hurt", "stand": "idle", "sprint": "run", "leap": "jump", "fire": "shoot"}
+
+
 def animation_id(name: str, rig_version: str = "", rig_type: str = "biped") -> str:
     """Friendly name ("walk", "dance_01") → the preset id this rig takes."""
     raw = str(name or "").strip().lower().replace(" ", "_")
     if not raw:
         raise ValueError("empty animation name")
+    if not (rig_version or "v1.0").startswith("v1"):
+        raw = ANIMATION_ALIASES.get(raw, raw)  # a spec says attack / bite; the v2.5 set has slash
     v1 = (rig_version or "v1.0").startswith("v1")
     if raw.startswith("preset:"):
         pool = ANIMATIONS_V1 if v1 else ANIMATIONS_V25

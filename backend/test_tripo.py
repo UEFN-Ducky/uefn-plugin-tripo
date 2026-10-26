@@ -199,6 +199,12 @@ def test_animation_ids_and_rig_versions() -> None:
         t.rig_version_for("biped", "unreal", "v1.0-20240301")
 
 
+def test_animation_aliases() -> None:
+    assert t.animation_id("bite", "v2.5-20260210", "quadruped") == "preset:slash"
+    assert t.animation_id("Attack", "v2.5-20260210", "biped") == "preset:slash"
+    assert t.animation_id("walk", "v2.5-20260210", "quadruped") == "preset:quadruped:walk"
+
+
 def test_parse_task_and_links() -> None:
     ok = t.parse_task({"task_id": "x", "status": "success",
                        "output": {"rendered_image_url": "https://c/p.webp", "model_url": "https://c/m.glb",
@@ -392,6 +398,8 @@ def test_manifest_matches_code(api) -> None:
     builtin = {"input.text", "input.image", "input.mesh", "mesh.set_origin", "uefn.import", "util.preview"}
     for tmpl in contrib["automations"]["templates"]:
         assert tmpl["requires_plugins"] == ["tripo"]
+        if "bundle" in tmpl:
+            continue  # test_character_bundle
         ids = {n["id"] for n in tmpl["graph"]["nodes"]}
         for node in tmpl["graph"]["nodes"]:
             assert node["type"] in builtin or node["type"] in declared, node["type"]
@@ -400,3 +408,74 @@ def test_manifest_matches_code(api) -> None:
     assert api.secret_test[0] == manifest["secret_keys"][0] == t.SECRET_KEY
     for path in (ROOT / "skills" / "tripo-api").rglob("*.md"):
         assert path.read_text(encoding="utf-8").startswith("---\n"), path
+
+
+# Core node types the character bundle uses, with the pins its wires may name (the core catalog is the source).
+_CORE_PINS: dict[str, tuple[set[str], set[str]]] = {
+    "llm.vision": ({"image", "prompt"}, {"text"}), "image.generate": ({"prompt"}, {"image"}),
+    "image.edit": ({"image", "prompt"}, {"image"}), "image.remove_bg": ({"image"}, {"image"}),
+    "uefn.import": ({"file", "folder"}, {"asset", "assets"}), "uefn.open_project": ({"project"}, set()),
+    "flow.choose": ({"images", "message"}, {"choice", "note"}), "flow.repeat": ({"until"}, {"attempt", "passed"}),
+    "notify.message": ({"message"}, {"sent"}), "input.text": (set(), {"text"}), "list.make": (set(), {"list"}),
+    "logic.if": (set(), {"result"}), "logic.expression": (set(), {"result"}), "text.template": (set(), {"text"}),
+    "tool.call": (set(), {"result", "text"}), "pipeline.finish": (set(), set()),
+    "mesh.rig": ({"mesh", "height", "body"}, {"mesh", "files"}), "mesh.animate": ({"mesh", "actions"}, {"mesh", "meshes", "files"}),
+}
+
+
+_MORE_CORE_TYPES = {"flow.input", "flow.output", "llm.extract", "flow.foreach", "workflow.call", "start.chat", "mesh.multi_view",
+                    "mesh.from_image", "mesh.remesh", "mesh.fit_box", "mesh.set_origin", "mesh.render", "mesh.info"}
+
+
+def _pins_of(node: dict[str, Any]) -> tuple[set[str], set[str]] | None:
+    if node["type"] in _MORE_CORE_TYPES - {"flow.input", "flow.output", "llm.extract"}:
+        return None  # wires there are checked by the core (test_character_bundle_in_core)
+    cfg = node.get("config") or {}
+    names = {str(n) for n in cfg.get("names") or []}
+    if node["type"] == "flow.input":
+        return set(), {r["name"] for r in cfg["inputs"]}
+    if node["type"] == "flow.output":
+        return {r["name"] for r in cfg["outputs"]}, set()
+    if node["type"] == "llm.extract":
+        return {"text"}, names | {"data"}
+    ins, outs = _CORE_PINS[node["type"]]
+    return (ins | names, outs) if node["type"] in ("text.template", "logic.expression", "list.make") else (ins, outs)
+
+
+def test_character_bundle() -> None:
+    manifest = json.loads((ROOT / "plugin.json").read_text(encoding="utf-8"))
+    row = next(t_ for t_ in manifest["contributes"]["automations"]["templates"] if t_["id"] == "tripo-character")
+    bundle = row["bundle"]
+    keys = [w["key"] for w in bundle["workflows"]]
+    assert len(keys) == len(set(keys)) and set(keys) == {"character", "spec", "sheet", "make3d", "rig", "gear", "ship"}
+    declared = {r["id"] for r in manifest["contributes"]["automations"]["nodes"]}
+    for wf in bundle["workflows"]:
+        nodes = {n["id"]: n for n in wf["graph"]["nodes"]}
+        for node in nodes.values():
+            assert node["type"] in _CORE_PINS or node["type"] in _MORE_CORE_TYPES or node["type"] in declared, (wf["key"], node["type"])
+            if node["type"] == "workflow.call":
+                assert node["config"]["workflow_id"].lstrip("@") in keys
+        fed: set[tuple[str, str]] = set()
+        for edge in wf["graph"]["edges"]:
+            assert edge["source"] in nodes and edge["target"] in nodes, (wf["key"], edge)
+            if edge["kind"] == "data":
+                src, dst = _pins_of(nodes[edge["source"]]), _pins_of(nodes[edge["target"]])
+                assert src is None or edge["source_pin"] in src[1], (wf["key"], edge)
+                assert dst is None or edge["target_pin"] in dst[0], (wf["key"], edge)
+                assert (edge["target"], edge["target_pin"]) not in fed, (wf["key"], "two wires into one pin", edge)
+                fed.add((edge["target"], edge["target_pin"]))
+            else:
+                assert edge["kind"] in ("main", "each", "done", "true", "false")
+
+
+def test_character_bundle_in_core() -> None:
+    """The core's own bundle, wire-type and expression checks (needs the app's source: DUCKY_APP_DIR)."""
+    import os
+    import subprocess
+    import sys
+
+    app_dir = os.environ.get("DUCKY_APP_DIR", "")
+    if not app_dir or not Path(app_dir, "backend", "automations", "pins.py").is_file():
+        pytest.skip("DUCKY_APP_DIR is not set to the Ducky app's source")
+    done = subprocess.run([sys.executable, str(ROOT / "backend" / "core_wires.py"), app_dir], capture_output=True, text=True, timeout=120)
+    assert done.returncode == 0, done.stdout + done.stderr
