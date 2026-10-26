@@ -2150,7 +2150,7 @@
                 "graph": {
                   "nodes": [
                     {"id": "in", "type": "flow.input", "x": 0, "y": 0, "label": "Prompt", "config": {"inputs": [{"name": "prompt", "type": "text", "default": "zombie for Roguelike"}]}},
-                    {"id": "ask", "type": "llm.extract", "x": 300, "y": 0, "label": "Write the spec", "config": {
+                    {"id": "ask", "type": "llm.extract", "x": 300, "y": 0, "label": "Write the spec", "config": {"model": "claude_code:claude-opus-5-5",
                       "names": ["name", "body", "style", "palette", "height_m", "gear", "animations", "npc_role", "island"],
                       "system": "The text asks for a game character. Fill: name = short Title Case name (Grey Wolf); body = exactly humanoid (two legs, two arms) or quadruped (four legs); style = art style, default stylized game-ready; palette = the 3 main colors in words; height_m = realistic height in meters as a number; gear = list of up to 3 held or worn items as strings ([] for none); animations = list of animation names, idle first, walk second, then up to 3 of run, attack, bite, hurt; npc_role = one word (enemy, ally, villager, boss); island = the island or project the request names (after for or in), else null."}},
                     {"id": "fr", "type": "text.template", "x": 600, "y": 0, "label": "Front prompt", "config": {
