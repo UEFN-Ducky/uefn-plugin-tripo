@@ -34,9 +34,19 @@ def problems(app_dir: str) -> list[str]:
             "outputs": [r["name"] for r in rets],
             "output_types": {r["name"]: r.get("type", "any") for r in rets},
         }
-    from backend.automations.expr import compile_expr
+    from backend.automations.expr import compile_expr, evaluate
 
     out: list[str] = []
+    spec_nodes = {n["id"]: n for n in next(w for w in bundle["workflows"] if w["key"] == "spec")["graph"]["nodes"]}
+    front = spec_nodes["fr"]["config"]["template"]
+    for palette, gear in ((None, []), ("", None), ("red, black, grey", ["a backpack", "a lantern"])):
+        text = front.replace("{{palette}}", evaluate(spec_nodes["pal"]["config"]["expression"], {"palette": palette}))
+        text = text.replace("{{gear}}", evaluate(spec_nodes["gx"]["config"]["expression"], {"gear": gear}))
+        for bad in ("Gear: [", "palette: .", "Gear: .", "None", "null", "{{"):
+            if bad in text.replace("character.", "character. ", 1) and not (bad == "{{" and "{{name}}" in text):
+                out.append(f"spec: front prompt for palette={palette!r} gear={gear!r} contains {bad!r}")
+        if gear and "Gear: a backpack, a lantern." not in text or palette and "Color palette: red, black, grey." not in text:
+            out.append(f"spec: front prompt lost its palette or gear: {text}")
     for wf in bundle["workflows"]:
         for node in wf["graph"]["nodes"]:
             if node["type"] in ("logic.expression", "logic.if"):
