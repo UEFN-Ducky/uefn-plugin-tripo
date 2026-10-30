@@ -155,10 +155,12 @@ class TripoError(Exception):
 
 def _api_key() -> str:
     try:
-        from backend.agent.secrets import get_key
+        from backend.agent.secrets import load_keys
     except ImportError:
         return ""
-    return (get_key(SECRET_KEY) or "").strip()
+    # Read the file, not the process cache: tools run outside Settings, so a key saved there
+    # after this process cached its keys would stay invisible until restart.
+    return (load_keys(use_cache=False).get(SECRET_KEY) or "").strip()
 
 
 def plugin_prefs() -> dict[str, Any]:
